@@ -103,7 +103,7 @@ module FlagsColumn
       ["#{column}_all", "#{column}_all?"].each do |method|
         define_method(method.to_sym) do
           flagged_value = self[column] || 0
-          flagged_value == self.class.send("mask_#{column}", *self.send("#{column}_flags".to_sym))
+          flagged_value == self.class.send("mask_#{column}", *self.class.send("#{column}_flags".to_sym))
         end
       end
 
@@ -135,26 +135,25 @@ module FlagsColumn
 
     protected
       
-      def method_missing_with_flags(method, *args, &block) #:nodoc:
-        unless column = self.class.flagged_columns.first { |name, options| method.to_s =~ /^#{name}_[^_]+_and_[^_]+/ }
+      def method_missing_with_flags(method, *args, &block) #:nodoc:        
+        unless column = self.class.flagged_column_names.find { |name| method.to_s =~ /^#{name}_[^_]+_and_[^_]+/ }
           return method_missing_without_flags(method, *args, &block)
         end
         
-        name = column.first
-        options = column.last
+        options = self.class.flagged_columns[column]
         
-        if method.to_s =~ /^#{name}_([a-z0-9_]+)(\?|\=)?$/
+        if method.to_s =~ /^#{column}_([a-z0-9_]+)(\?|\=)?$/
           anded_flags, suffix = $1, $2
           flags = anded_flags.split('_and_').map(&:to_sym)
           
           method_missing_without_flags(method, *args, &block) unless (flags - options[:flags].keys).empty?
           
-          flagged_value = self[name] || 0
-          mask = self.class.send("mask_#{name}".to_sym, *flags)
+          flagged_value = self[column] || 0
+          mask = self.class.send("mask_#{column}".to_sym, *flags)
           
           if suffix == '='
             flag = ['true', '1', 'yes', 'ok'].include?(args.first.to_s.downcase)
-            self[name] = flag ? flagged_value |= mask : flagged_value &= ~mask
+            self[column] = flag ? flagged_value |= mask : flagged_value &= ~mask
           else
             (flagged_value & mask) == mask
           end

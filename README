@@ -26,9 +26,10 @@ Prepare your model:
   
   class Post < ActiveRecord::Base
   
-    # mark a column as a bit-flagged integer,
+    # Mark a column as a bit-flagged integer,
     # provide the flag names and their bit positions,
-    # and optionally set one or more default flags
+    # and optionally set one or more default flags.
+    #
     flags_column :visible_to, 
                  { :admins => 0, :members => 1, :friends => 2 }, 
                  :initial => [:members, :friends]
@@ -106,3 +107,5 @@ Run script/console:
 
 
 Copyright (c) 2008 Martin Andert, released under the MIT license.
+
+Contact: mandert (at) gmx (dot) net
