@@ -94,7 +94,7 @@ Run script/console:
   >> p.visible_to_admins_and_members_and_friends?
   => true
   
-  >> p.visible_to_members_and_admins => false
+  >> p.visible_to_members_and_admins = false
   => false
   
   >> p.visible_to_flags
