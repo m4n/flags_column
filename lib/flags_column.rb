@@ -46,8 +46,6 @@ module FlagsColumn
       class_inheritable_reader default_mask_attribute
       
       class_eval <<-EOV
-        after_initialize :initialize_#{column}
-        
         def self.mask_#{column}(*flags)
           bit_flags = #{bit_flags_attribute}
           
