@@ -77,33 +77,33 @@ module FlagsColumn
         end
         
         define_method("#{column}_#{name}?".to_sym) do
-          bits = self[column] ||= 0
-          bits[position].eql? 1
+          flagged_value = self[column] || 0
+          flagged_value[position].eql? 1
         end
           
         define_method("#{column}_#{name}".to_sym) do
-          bits = self[column] ||= 0
-          bits[position].eql? 1
+          flagged_value = self[column] || 0
+          flagged_value[position].eql? 1
         end
 
         define_method("#{column}_#{name}=".to_sym) do |v|
-          bits = self[column] ||= 0
+          flagged_value = self[column] || 0
           flag = ['true', '1', 'yes', 'ok'].include?(v.to_s.downcase)
-          self[column] = flag ? bits |= mask : bits &= ~mask
+          self[column] = flag ? flagged_value |= mask : flagged_value &= ~mask
         end
       end
       
       ["#{column}_none", "#{column}_none?"].each do |method|
         define_method(method.to_sym) do
-          bits = self[column] ||= 0
-          bits == 0
+          flagged_value = self[column] || 0
+          flagged_value == 0
         end
       end
       
       ["#{column}_all", "#{column}_all?"].each do |method|
         define_method(method.to_sym) do
-          bits = self[column] ||= 0
-          bits == self.class.send("mask_#{column}", *self.send("#{column}_flags".to_sym))
+          flagged_value = self[column] || 0
+          flagged_value == self.class.send("mask_#{column}", *self.send("#{column}_flags".to_sym))
         end
       end
 
@@ -149,14 +149,14 @@ module FlagsColumn
           
           method_missing_without_flags(method, *args, &block) unless (flags - options[:flags].keys).empty?
           
-          bits = self[name] || 0
+          flagged_value = self[name] || 0
           mask = self.class.send("mask_#{name}".to_sym, *flags)
           
           if suffix == '='
             flag = ['true', '1', 'yes', 'ok'].include?(args.first.to_s.downcase)
-            self[name] = flag ? bits |= mask : bits &= ~mask
+            self[name] = flag ? flagged_value |= mask : flagged_value &= ~mask
           else
-            (bits & mask) == mask
+            (flagged_value & mask) == mask
           end
         else
           method_missing_without_flags(method, *args, &block)
