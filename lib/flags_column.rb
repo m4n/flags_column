@@ -49,7 +49,7 @@ module FlagsColumn
         def self.mask_#{column}(*flags)
           bit_flags = #{bit_flags_attribute}
 
-          flags.inject(0) do |n, name|
+          flags.flatten.inject(0) do |n, name|
             n += bit_flags[name.to_sym]
           end
         end
@@ -63,7 +63,7 @@ module FlagsColumn
         end
       EOV
 
-      initial_flags = Array(options[:initial]).map(&:to_sym)
+      initial_flags = options[:initial] && Array(options[:initial]).map(&:to_sym)
       read_inheritable_attribute(:flagged_columns)[column] = { :flags => flags, :initial => initial_flags }
 
       flags.symbolize_keys!.each do |name, position|
@@ -72,7 +72,7 @@ module FlagsColumn
         read_inheritable_attribute(bit_flags_attribute)[name] = mask
         read_inheritable_attribute(bit_flags_inverted_attribute)[mask] = name
 
-        if initial_flags.include?(name)
+        if initial_flags && initial_flags.include?(name)
           write_inheritable_attribute(default_mask_attribute, read_inheritable_attribute(default_mask_attribute) + mask)
         end
 
@@ -112,7 +112,9 @@ module FlagsColumn
       end
 
       define_method("initialize_#{column}".to_sym) do
-        self[column] = self.class.send("#{column}_default_mask".to_sym) if @new_record
+        if @new_record && self[column].nil? && !self.class.flagged_columns[column][:initial].nil?
+          self[column] = self.class.send("#{column}_default_mask".to_sym)
+        end
       end
 
       define_method("after_initialize_with_#{column}".to_sym) do

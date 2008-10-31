@@ -73,7 +73,16 @@ class Model < ActiveRecord::Base
                :initial => [:members, :friends]
 
   flags_column :notify_when,
-               { :created => 2, :updated => 4, :deleted => 7, :purged => 13 }
+               { :created => 2, :updated => 4, :deleted => 7, :purged => 13 },
+               :initial => :created
+               
+  flags_column :initial_empty,
+               { :x => 1 },
+               :initial => []
+  
+  flags_column :initial_nil,
+               { :x => 1 },
+               :initial => nil
 end
 
 class FlagsColumnTest < Test::Unit::TestCase # ActiveSupport::TestCase
@@ -86,7 +95,7 @@ class FlagsColumnTest < Test::Unit::TestCase # ActiveSupport::TestCase
   end
 
   def test_flagged_columns_should_have_the_expected_keys
-    assert_same_array_elements [:visible_to, :notify_when], Model.flagged_columns.keys
+    assert_same_array_elements [:visible_to, :notify_when, :initial_empty, :initial_nil], Model.flagged_columns.keys
   end
 
   def test_flagged_columns_keys_should_equal_flagged_column_names
@@ -94,15 +103,21 @@ class FlagsColumnTest < Test::Unit::TestCase # ActiveSupport::TestCase
   end
 
   def test_flagged_column_flags_should_have_expected_flags
-    expected = { :visible_to => [:admins, :members, :friends], :notify_when => [:created, :updated, :deleted, :purged] }
+    expected = { :visible_to => [:admins, :members, :friends], :notify_when => [:created, :updated, :deleted, :purged], :initial_empty => [:x], :initial_nil => [:x] }
 
     Model.flagged_columns.each { |name, options| assert_same_array_elements(options[:flags].keys, expected[name]) }
   end
 
   def test_flagged_column_flags_should_have_expected_initials
-    expected = { :visible_to => [:members, :friends], :notify_when => [] }
+    expected = { :visible_to => [:members, :friends], :notify_when => [:created], :initial_empty => [], :initial_nil => nil }
 
-    Model.flagged_columns.each { |name, options| assert_same_array_elements(options[:initial], expected[name]) }
+    Model.flagged_columns.each do |name, options| 
+      if expected[name].nil?
+        assert_nil options[:initial]
+      else
+        assert_same_array_elements(options[:initial], expected[name])
+      end
+    end
   end
 
   def test_class_should_respond_to_flags_column_name_plus_flags
@@ -126,27 +141,27 @@ class FlagsColumnTest < Test::Unit::TestCase # ActiveSupport::TestCase
   end
 
   def test_instance_should_respond_to_flags_column_name_plus_flags
-    model = disconnected(Model).where(:visible_to => nil, :notify_when => nil)
+    model = disconnected(Model).where(:visible_to => nil, :notify_when => nil, :initial_empty => nil, :initial_nil => nil)
     assert model.class.flagged_column_names.all? { |name| model.respond_to?("#{name}_flags".to_sym) }
   end
 
   def test_instance_should_respond_to_flags_column_name_plus_all
-    model = disconnected(Model).where(:visible_to => nil, :notify_when => nil)
+    model = disconnected(Model).where(:visible_to => nil, :notify_when => nil, :initial_empty => nil, :initial_nil => nil)
     assert model.class.flagged_column_names.all? { |name| model.respond_to?("#{name}_all".to_sym) && model.respond_to?("#{name}_all?".to_sym) }
   end
 
   def test_instance_should_respond_to_flags_column_name_plus_none
-    model = disconnected(Model).where(:visible_to => nil, :notify_when => nil)
+    model = disconnected(Model).where(:visible_to => nil, :notify_when => nil, :initial_empty => nil, :initial_nil => nil)
     assert model.class.flagged_column_names.all? { |name| model.respond_to?("#{name}_none".to_sym) && model.respond_to?("#{name}_none?".to_sym) }
   end
 
   def test_instance_should_respond_to_flags_column_name_plus_flag_getters_and_setters
-    model = disconnected(Model).where(:visible_to => nil, :notify_when => nil)
+    model = disconnected(Model).where(:visible_to => nil, :notify_when => nil, :initial_empty => nil, :initial_nil => nil)
     assert model.class.flagged_columns.all? { |name, options| options[:flags].keys.all? { |flag| model.respond_to?("#{name}_#{flag}".to_sym) && model.respond_to?("#{name}_#{flag}?".to_sym) && model.respond_to?("#{name}_#{flag}=".to_sym) } }
   end
 
   def test_instance_should_respond_to_flags_column_name_plus_anded_flags_getters_and_setters
-    model = disconnected(Model).where(:visible_to => nil, :notify_when => nil)
+    model = disconnected(Model).where(:visible_to => nil, :notify_when => nil, :initial_empty => nil, :initial_nil => nil)
 
     assert model.class.flagged_columns.all? { |name, options|
       anded_flags = options[:flags].keys.map(&:to_s).join('_and_')
@@ -154,13 +169,27 @@ class FlagsColumnTest < Test::Unit::TestCase # ActiveSupport::TestCase
     }
   end
 
-  def test_new_instance_should_have_the_right_initial_flags_set
-    model = disconnected(Model).where(:visible_to => nil, :notify_when => nil)
-    model.class.flagged_columns.each { |name, options| assert_same_array_elements(model.class.flagged_columns[name][:initial], model.send("#{name}_flags".to_sym)) }
+  def test_new_instance_should_have_the_right_initial_flags_set_when_not_explicitly_provided
+    model = disconnected(Model).where(:visible_to => nil, :notify_when => nil, :initial_empty => nil, :initial_nil => nil)
+    
+    model.class.flagged_columns.each { |name, options| 
+      if options[:initial].nil?
+        assert_nil model.send("#{name}".to_sym)
+      else
+        assert_same_array_elements(model.class.flagged_columns[name][:initial], model.send("#{name}_flags".to_sym))
+      end
+    }
+  end
+
+  def test_new_instance_should_not_have_the_initial_flags_set_when_explicitly_provided
+    model = disconnected(Model).where(:visible_to => 3, :notify_when => 0)
+    
+    assert_equal 3, model.visible_to
+    assert_equal 0, model.notify_when
   end
 
   def test_all_flags_set_to_false_should_all_getter_return_false
-    model = disconnected(Model).where(:visible_to => nil, :notify_when => nil)
+    model = disconnected(Model).where(:visible_to => nil, :notify_when => nil, :initial_empty => nil, :initial_nil => nil)
 
     model.class.flagged_columns.each do |name, options|
       options[:flags].keys.each do |flag|
@@ -172,7 +201,7 @@ class FlagsColumnTest < Test::Unit::TestCase # ActiveSupport::TestCase
   end
 
   def test_all_flags_set_to_false_should_none_getter_return_true
-    model = disconnected(Model).where(:visible_to => nil, :notify_when => nil)
+    model = disconnected(Model).where(:visible_to => nil, :notify_when => nil, :initial_empty => nil, :initial_nil => nil)
 
     model.class.flagged_columns.each do |name, options|
       options[:flags].keys.each do |flag|
@@ -184,7 +213,7 @@ class FlagsColumnTest < Test::Unit::TestCase # ActiveSupport::TestCase
   end
 
   def test_all_flags_set_to_true_should_all_getter_return_true
-    model = disconnected(Model).where(:visible_to => nil, :notify_when => nil)
+    model = disconnected(Model).where(:visible_to => nil, :notify_when => nil, :initial_empty => nil, :initial_nil => nil)
 
     model.class.flagged_columns.each do |name, options|
       options[:flags].keys.each do |flag|
@@ -196,7 +225,7 @@ class FlagsColumnTest < Test::Unit::TestCase # ActiveSupport::TestCase
   end
 
   def test_all_flags_set_to_true_should_none_getter_return_false
-    model = disconnected(Model).where(:visible_to => nil, :notify_when => nil)
+    model = disconnected(Model).where(:visible_to => nil, :notify_when => nil, :initial_empty => nil, :initial_nil => nil)
 
     model.class.flagged_columns.each do |name, options|
       options[:flags].keys.each do |flag|
@@ -208,21 +237,27 @@ class FlagsColumnTest < Test::Unit::TestCase # ActiveSupport::TestCase
   end
 
   def test_only_one_flag_set_to_true_should_all_getter_return_false
-    model = disconnected(Model).where(:visible_to => nil, :notify_when => nil)
+    model = disconnected(Model).where(:visible_to => nil, :notify_when => nil, :initial_empty => nil, :initial_nil => nil)
 
     model.class.flagged_columns.each do |name, options|
-      options[:flags].keys.each do |flag|
+      flags = options[:flags].keys
+      
+      flags.each do |flag|
         model.send("#{name}_#{flag}=", false)
       end
 
       model.send("#{name}_#{options[:flags].keys.first}=", true)
 
-      assert !model.send("#{name}_all?")
+      if flags.size == 1
+        assert model.send("#{name}_all?")
+      else
+        assert !model.send("#{name}_all?")
+      end
     end
   end
 
   def test_only_one_flag_set_to_true_should_none_getter_return_false
-    model = disconnected(Model).where(:visible_to => nil, :notify_when => nil)
+    model = disconnected(Model).where(:visible_to => nil, :notify_when => nil, :initial_empty => nil, :initial_nil => nil)
 
     model.class.flagged_columns.each do |name, options|
       options[:flags].keys.each do |flag|
@@ -236,7 +271,7 @@ class FlagsColumnTest < Test::Unit::TestCase # ActiveSupport::TestCase
   end
 
   def test_assigned_flags_should_equal_expected_flags
-    model = disconnected(Model).where(:visible_to => nil, :notify_when => nil)
+    model = disconnected(Model).where(:visible_to => nil, :notify_when => nil, :initial_empty => nil, :initial_nil => nil)
 
     model.class.flagged_columns.each do |name, options|
       flags = options[:flags].keys

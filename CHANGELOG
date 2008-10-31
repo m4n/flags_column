@@ -1,4 +1,9 @@
-*0.2.0*
+*Edge*
+
+* ensure initial flags are not set when explicitly provided
+
+
+*0.2.0* (October 30, 2008)
 
 * removed some unnecessary conditional assignments
 
@@ -9,7 +14,7 @@
 * added initial tests (mocha required)
 
 
-*0.1.0*
+*0.1.0* (October 29, 2008)
 
 * first version
 
