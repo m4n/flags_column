@@ -75,14 +75,20 @@ class Model < ActiveRecord::Base
   flags_column :notify_when,
                { :created => 2, :updated => 4, :deleted => 7, :purged => 13 },
                :initial => :created
-               
+
   flags_column :initial_empty,
                { :x => 1 },
                :initial => []
-  
+
   flags_column :initial_nil,
                { :x => 1 },
                :initial => nil
+end
+
+class AccessibleModel < ActiveRecord::Base
+  flags_column :not_attr_accessible_by_default, { :x => 1 }
+  flags_column :explicitly_not_attr_accessible, { :x => 1 }, :accessible => false
+  flags_column :attr_accessible, { :x => 1, :y => 2 }, :accessible => true
 end
 
 class FlagsColumnTest < Test::Unit::TestCase # ActiveSupport::TestCase
@@ -111,7 +117,7 @@ class FlagsColumnTest < Test::Unit::TestCase # ActiveSupport::TestCase
   def test_flagged_column_flags_should_have_expected_initials
     expected = { :visible_to => [:members, :friends], :notify_when => [:created], :initial_empty => [], :initial_nil => nil }
 
-    Model.flagged_columns.each do |name, options| 
+    Model.flagged_columns.each do |name, options|
       if expected[name].nil?
         assert_nil options[:initial]
       else
@@ -171,8 +177,8 @@ class FlagsColumnTest < Test::Unit::TestCase # ActiveSupport::TestCase
 
   def test_new_instance_should_have_the_right_initial_flags_set_when_not_explicitly_provided
     model = disconnected(Model).where(:visible_to => nil, :notify_when => nil, :initial_empty => nil, :initial_nil => nil)
-    
-    model.class.flagged_columns.each { |name, options| 
+
+    model.class.flagged_columns.each { |name, options|
       if options[:initial].nil?
         assert_nil model.send("#{name}".to_sym)
       else
@@ -183,7 +189,7 @@ class FlagsColumnTest < Test::Unit::TestCase # ActiveSupport::TestCase
 
   def test_new_instance_should_not_have_the_initial_flags_set_when_explicitly_provided
     model = disconnected(Model).where(:visible_to => 3, :notify_when => 0)
-    
+
     assert_equal 3, model.visible_to
     assert_equal 0, model.notify_when
   end
@@ -241,7 +247,7 @@ class FlagsColumnTest < Test::Unit::TestCase # ActiveSupport::TestCase
 
     model.class.flagged_columns.each do |name, options|
       flags = options[:flags].keys
-      
+
       flags.each do |flag|
         model.send("#{name}_#{flag}=", false)
       end
@@ -292,6 +298,20 @@ class FlagsColumnTest < Test::Unit::TestCase # ActiveSupport::TestCase
       end
     end
   end
+
+  def test_flags_are_not_attr_accessible_by_default
+    assert !AccessibleModel.accessible_attributes.include?(:not_attr_accessible_by_default_x)
+  end
+
+  def test_flags_set_explicitly_not_attr_accessible_are_not_attr_accessible
+    assert !AccessibleModel.accessible_attributes.include?(:explicitly_not_attr_accessible_x)
+  end
+
+  def test_flags_set_as_attr_accessible_are_attr_accessible
+    assert AccessibleModel.accessible_attributes.include?(:attr_accessible_x)
+    assert AccessibleModel.accessible_attributes.include?(:attr_accessible_y)
+  end
+
 
   private
 

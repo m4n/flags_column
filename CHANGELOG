@@ -1,5 +1,7 @@
 *Edge*
 
+* add support for attr_accessible to the individual flags for a column
+
 * ensure initial flags are not set when explicitly provided
 
 

@@ -64,7 +64,8 @@ module FlagsColumn
       EOV
 
       initial_flags = options[:initial] && Array(options[:initial]).map(&:to_sym)
-      read_inheritable_attribute(:flagged_columns)[column] = { :flags => flags, :initial => initial_flags }
+      accessible = !!options[:accessible]
+      read_inheritable_attribute(:flagged_columns)[column] = { :flags => flags, :initial => initial_flags, :accessible => accessible }
 
       flags.symbolize_keys!.each do |name, position|
         mask = (1 << position)
@@ -91,6 +92,8 @@ module FlagsColumn
           flag = ['true', '1', 'yes', 'ok'].include?(v.to_s.downcase)
           self[column] = flag ? flagged_value |= mask : flagged_value &= ~mask
         end
+
+        attr_accessible "#{column}_#{name}".to_sym if accessible
       end
 
       ["#{column}_none", "#{column}_none?"].each do |method|

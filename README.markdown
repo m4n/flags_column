@@ -9,30 +9,25 @@ Example
 
 Prepare your model:
 
-    class CreatePosts < ActiveRecord::Migration
+    class AddVisibleToFlagsToPosts < ActiveRecord::Migration
       def self.up
-        create_table :posts do |t|
-          t.string   :title
-          t.text     :body
-          t.integer  :visible_to
-          t.timestamps
-        end
+        add_column :posts, :visible_to, :integer
       end
 
       def self.down
-        drop_table :posts
+        remove_column :posts, :visible_to
       end
     end
 
     class Post < ActiveRecord::Base
-
       # Mark a column as a bit-flagged integer,
       # provide the flag names and their bit positions,
       # and optionally set one or more default flags.
       #
       flags_column :visible_to,
                    { :admins => 0, :members => 1, :friends => 2 },
-                   :initial => [:members, :friends]
+                   :initial => [:members, :friends],
+                   :accessible => true
 
     end
 
@@ -103,7 +98,7 @@ Run script/console:
 
     >> p.save
     => #<Post id: 1, title: nil, body: nil, visible_to: 4, ...>
-    
+
     >> Post.all(:conditions => { :visible_to => Post.mask_visible_to(:admins, :members) })
     =>[#<Post ...>, #<Post ...>, ...]
 
@@ -112,3 +107,4 @@ Run script/console:
 Copyright (c) 2008 Martin Andert, released under the MIT license.
 
 Contact: mandert (at) gmx (dot) net
+
