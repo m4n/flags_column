@@ -1,6 +1,10 @@
-require "active_record"
+# encoding: utf-8
+
+require "active_support/dependencies/autoload"
 
 module FlagsColumn
-  # Your code goes here...
+  extend ActiveSupport::Autoload
+
+  autoload :ActiveRecord
 end
 
