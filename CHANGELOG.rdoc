@@ -1,0 +1,22 @@
+== Edge
+
+* add support for attr_accessible to the individual flags for a column
+
+* ensure initial flags are not set when explicitly provided
+
+
+== 0.2.0 (October 30, 2008)
+
+* removed some unnecessary conditional assignments
+
+* fixed bug in <column>_all? getter
+
+* fixed bug in method_missing chain method
+
+* added initial tests (mocha required)
+
+
+== 0.1.0 (October 29, 2008)
+
+* first version
+
