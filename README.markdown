@@ -104,7 +104,5 @@ Run script/console:
 
 
 
-Copyright (c) 2008 Martin Andert, released under the MIT license.
-
-Contact: mandert (at) gmx (dot) net
+Copyright (c) 2008-2011 Martin Andert, released under the MIT license.
 
